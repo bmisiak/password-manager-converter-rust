@@ -11,7 +11,7 @@ fn main() {
         Some("-") => Box::new(BufReader::new(std::io::stdin())),
         Some(filename) => Box::new(BufReader::new(File::open(filename).unwrap())),
         None => {
-            println!("Export .json from Enpass and provide the path to the file as an argument, or \"-\" to read from stdin.");
+            println!("Export .json from your password manager and provide the path to the file as an argument, or \"-\" to read from stdin.");
             return;
         }
     };
