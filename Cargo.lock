@@ -133,16 +133,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "enpass"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "csv",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "iana-time-zone"
 version = "0.1.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -235,6 +225,16 @@ name = "once_cell"
 version = "1.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b7e5500299e16ebb147ae15a00a942af264cf3688f47923b8fc2cd5858f23ad3"
+
+[[package]]
+name = "password-manager-converter-rust"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "csv",
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "proc-macro2"
