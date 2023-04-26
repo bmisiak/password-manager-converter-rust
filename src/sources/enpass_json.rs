@@ -1,7 +1,10 @@
+use super::Source;
+use crate::universal::UniversalItem;
 use chrono::{serde::ts_seconds, DateTime, Utc};
 use std::borrow::Cow;
+
 #[derive(serde::Deserialize)]
-pub struct EnpassExport<'a> {
+pub struct EnpassJson<'a> {
     pub items: Vec<EnpassItem<'a>>,
 }
 
@@ -22,13 +25,55 @@ pub struct EnpassField<'a> {
     pub value: Cow<'a, str>,
 }
 
-impl<'a> IntoIterator for EnpassExport<'a> {
-    type Item = EnpassItem<'a>;
-    type IntoIter = std::vec::IntoIter<Self::Item>;
+pub struct EnpassIterator<'a>(std::vec::IntoIter<EnpassItem<'a>>);
+impl<'a> Iterator for EnpassIterator<'a> {
+    type Item = UniversalItem<'a>;
 
-    fn into_iter(self) -> Self::IntoIter {
-        self.items.into_iter()
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next().map(|item| {
+            let mut converted = UniversalItem {
+                title: item.title,
+                notes: item.note,
+                created: item.created_at,
+                ..Default::default()
+            };
+
+            for field in item
+                .fields
+                .into_iter()
+                .flatten()
+                .filter(|field| !field.value.is_empty())
+            {
+                match field.r#type.as_ref() {
+                    "username" => converted.username = Some(field.value),
+                    "email" => converted.email = Some(field.value),
+                    "url" => converted.url = Some(field.value),
+                    "password" => converted.password = Some(field.value),
+                    "totp" => converted.otpauth = Some(field.value),
+                    "phone" => converted.phone = Some(field.value),
+                    "text" if field.label.contains("phone") && converted.phone.is_none() => {
+                        converted.phone = Some(field.value)
+                    }
+                    _ => converted
+                        .unknown_fields
+                        .push((field.label, Cow::Owned(field.value.as_bytes().to_vec()))),
+                }
+            }
+
+            converted
+        })
     }
 }
 
-impl<'a> crate::source::Source for EnpassExport<'a> {}
+impl<'a> IntoIterator for EnpassJson<'a> {
+    type Item = UniversalItem<'a>;
+    type IntoIter = EnpassIterator<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        EnpassIterator(self.items.into_iter())
+    }
+}
+
+impl<'a> Source<'a> for EnpassJson<'a> {
+    type Itr = EnpassIterator<'a>;
+}
