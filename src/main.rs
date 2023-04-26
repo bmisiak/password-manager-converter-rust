@@ -24,9 +24,12 @@ fn main() -> Result<()> {
     let source: EnpassJson =
         serde_json::from_reader(reader).context("The input file has an incorrect format")?;
 
-    let output_file = File::open("./output.csv").context("Unable to write to ./output.csv")?;
-    let mut sink = Strongbox::new(output_file);
-    sink.write(source).context("Failed writing to output")?;
+    File::open("./output.csv")
+        .context("Unable to write to ./output.csv")
+        .map(Strongbox::new)?
+        .write(source)
+        .context("Failed writing to output")?;
+
     println!("Saved to output.csv");
 
     Ok(())
