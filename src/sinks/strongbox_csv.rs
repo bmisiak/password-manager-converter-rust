@@ -78,6 +78,7 @@ impl<W: std::io::Write> Sink for Strongbox<W> {
     fn convert_from_source(&mut self, source: Box<dyn Source>) -> anyhow::Result<()> {
         let mut error_context = String::new();
         for item in source.into_item_iter() {
+            error_context.clear();
             write!(error_context, "Converting item {item} to Strongbox")?;
             let converted_item =
                 StrongboxCsvItem::try_from(item).with_context(|| error_context.clone())?;
