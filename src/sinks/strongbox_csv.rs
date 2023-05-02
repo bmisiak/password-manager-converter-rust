@@ -1,6 +1,5 @@
 use anyhow::Context;
 use chrono::{serde::ts_seconds, DateTime, Utc};
-use serde::__private::from_utf8_lossy;
 use std::borrow::Cow;
 use std::fmt::Write;
 
@@ -43,9 +42,11 @@ where
         };
 
         for (name, value) in item.unknown_fields {
-            let str = from_utf8_lossy(value.as_ref());
-            if !str.is_empty() {
-                converted.notes = Cow::Owned(format!("{}\n{}: {}", converted.notes, name, str));
+            let str = std::str::from_utf8(value.as_ref());
+            if let Ok(str) = str {
+                if !str.is_empty() {
+                    converted.notes = Cow::Owned(format!("{}\n{}: {}", converted.notes, name, str));
+                }
             }
         }
 
