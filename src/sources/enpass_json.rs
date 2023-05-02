@@ -1,7 +1,6 @@
-use super::Source;
 use crate::universal::UniversalItem;
 use chrono::{serde::ts_seconds, DateTime, Utc};
-use std::borrow::Cow;
+use std::{borrow::Cow, io::BufRead};
 
 #[derive(serde::Deserialize)]
 pub struct EnpassJson<'a> {
@@ -65,15 +64,14 @@ impl<'a> Iterator for EnpassIterator<'a> {
     }
 }
 
-impl<'a> IntoIterator for EnpassJson<'a> {
-    type Item = UniversalItem<'a>;
-    type IntoIter = EnpassIterator<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        EnpassIterator(self.items.into_iter())
+impl<'a> super::Source<'a> for EnpassJson<'a> {
+    fn from_reader<R: BufRead>(reader: R) -> anyhow::Result<Self>
+    where
+        Self: Sized,
+    {
+        Ok(serde_json::from_reader(reader)?)
     }
-}
-
-impl<'a> Source<'a> for EnpassJson<'a> {
-    type Itr = EnpassIterator<'a>;
+    fn into_item_iter(self: Box<Self>) -> Box<dyn Iterator<Item = UniversalItem<'a>> + 'a> {
+        Box::new(EnpassIterator(self.items.into_iter()))
+    }
 }

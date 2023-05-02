@@ -1,10 +1,12 @@
+use std::io::BufRead;
+
 use crate::universal::UniversalItem;
 
 pub mod enpass_json;
 
-pub trait Source<'a>
-where
-    Self: IntoIterator<Item = UniversalItem<'a>, IntoIter = Self::Itr>,
-{
-    type Itr: Iterator<Item = UniversalItem<'a>>;
+pub trait Source<'a> {
+    fn from_reader<R: BufRead>(reader: R) -> anyhow::Result<Self>
+    where
+        Self: Sized;
+    fn into_item_iter(self: Box<Self>) -> Box<dyn Iterator<Item = UniversalItem<'a>> + 'a>;
 }

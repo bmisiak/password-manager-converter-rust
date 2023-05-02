@@ -1,7 +1,8 @@
-use anyhow::Result;
+use anyhow::Context;
 use chrono::{serde::ts_seconds, DateTime, Utc};
 use serde::__private::from_utf8_lossy;
-use std::{borrow::Cow, io::Write};
+use std::borrow::Cow;
+use std::fmt::Write;
 
 use super::Sink;
 use crate::{sources::Source, universal::UniversalItem};
@@ -23,11 +24,12 @@ pub struct StrongboxCsvItem<'a> {
     pub created: DateTime<Utc>,
 }
 
-impl<'a, 'b> From<UniversalItem<'a>> for StrongboxCsvItem<'b>
+impl<'a, 'b> TryFrom<UniversalItem<'a>> for StrongboxCsvItem<'b>
 where
     'a: 'b,
 {
-    fn from(item: UniversalItem<'a>) -> Self {
+    type Error = anyhow::Error;
+    fn try_from(item: UniversalItem<'a>) -> Result<Self, Self::Error> {
         let mut converted = StrongboxCsvItem {
             title: item.title,
             username: item.username,
@@ -61,25 +63,27 @@ where
             }
         }
 
-        converted
+        Ok(converted)
     }
 }
 
-pub struct Strongbox<W: Write>(csv::Writer<W>);
-impl<W: Write> Strongbox<W> {
-    pub fn new(out: W) -> Self {
+pub struct Strongbox<W: std::io::Write>(csv::Writer<W>);
+impl<W: std::io::Write> Strongbox<W> {
+    pub fn with_output(out: W) -> Self {
         Self(csv::Writer::from_writer(out))
     }
 }
 
-impl<W: Write> Sink for Strongbox<W> {
-    fn user_friendly_name() -> &'static str {
-        "strongbox"
-    }
-
-    fn write<'i>(&mut self, items: impl Source<'i>) -> Result<()> {
-        for item in items {
-            self.0.serialize(StrongboxCsvItem::from(item))?;
+impl<W: std::io::Write> Sink for Strongbox<W> {
+    fn convert_from_source(&mut self, source: Box<dyn Source>) -> anyhow::Result<()> {
+        let mut error_context = String::new();
+        for item in source.into_item_iter() {
+            write!(error_context, "Converting item {item} to Strongbox")?;
+            let converted_item =
+                StrongboxCsvItem::try_from(item).with_context(|| error_context.clone())?;
+            self.0
+                .serialize(converted_item)
+                .context("Serializing to output")?;
         }
         self.0.flush()?;
         Ok(())
