@@ -1,4 +1,5 @@
 use crate::universal::UniversalItem;
+use anyhow::Context;
 use chrono::{serde::ts_seconds, DateTime, Utc};
 use std::{borrow::Cow, io::BufRead};
 
@@ -69,7 +70,7 @@ impl<'a> super::Source<'a> for EnpassJson<'a> {
     where
         Self: Sized,
     {
-        Ok(serde_json::from_reader(reader)?)
+        serde_json::from_reader(reader).context(format!("Unable to parse the enpass .json export"))
     }
     fn into_item_iter(self: Box<Self>) -> Box<dyn Iterator<Item = UniversalItem<'a>> + 'a> {
         Box::new(EnpassIterator(self.items.into_iter()))

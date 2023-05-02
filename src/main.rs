@@ -33,10 +33,7 @@ fn main() -> Result<()> {
             .context(format!("Unable to open {sink_path}"))?;
 
         let source: Box<dyn Source> = match source_name.as_str() {
-            "enpass" => Box::new(
-                EnpassJson::from_reader(source_reader)
-                    .context(format!("Unable to parse the enpass .json export"))?,
-            ),
+            "enpass" => Box::new(EnpassJson::from_reader(source_reader)?),
             _ => bail!("Unsupported source name"),
         };
 
