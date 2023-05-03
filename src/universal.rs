@@ -1,5 +1,8 @@
 use chrono::{DateTime, Utc};
-use std::{borrow::Cow, fmt::Display};
+use std::{
+    borrow::Cow,
+    fmt::{self, Display},
+};
 
 #[derive(Default)]
 pub struct UniversalItem<'a> {
@@ -16,13 +19,10 @@ pub struct UniversalItem<'a> {
 }
 
 impl<'a> Display for UniversalItem<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{{\ntitle: {},\nusername: {}\n}}",
-            self.title,
-            self.username.as_ref().unwrap_or(&Cow::Borrowed("-"))
-        )?;
-        Ok(())
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("Item")
+            .field("title", &self.title.as_ref())
+            .field("username", &self.username.as_deref().unwrap_or("-"))
+            .finish()
     }
 }
