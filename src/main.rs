@@ -42,8 +42,7 @@ fn main() -> Result<()> {
             _ => bail!("Unsupported target name"),
         };
 
-        sink.convert_from_source(source)
-            .context(format!("Unable to convert to {sink_name}"))?;
+        sink.convert_from_source(source)?;
 
         println!("Conversion successful!");
     } else {

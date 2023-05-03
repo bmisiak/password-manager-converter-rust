@@ -1,7 +1,7 @@
 use anyhow::Context;
 use chrono::{serde::ts_seconds, DateTime, Utc};
-use std::borrow::Cow;
 use std::fmt::Write;
+use std::{borrow::Cow, io};
 
 use super::Sink;
 use crate::{sources::Source, universal::UniversalItem};
@@ -42,10 +42,9 @@ where
         };
 
         for (name, value) in item.unknown_fields {
-            let str = std::str::from_utf8(value.as_ref());
-            if let Ok(str) = str {
+            if let Ok(str) = std::str::from_utf8(value.as_ref()) {
                 if !str.is_empty() {
-                    converted.notes = Cow::Owned(format!("{}\n{}: {}", converted.notes, name, str));
+                    write!(converted.notes.to_mut(), "\n{name}: {str}")?;
                 }
             }
         }
@@ -58,7 +57,7 @@ where
 
         if let Some(phone) = converted.phone.as_ref() {
             if converted.username.is_some() {
-                converted.notes = Cow::Owned(format!("{}\nPhone: {phone}", converted.notes));
+                write!(converted.notes.to_mut(), "\nPhone: {phone}")?;
             } else {
                 converted.username = converted.phone.clone();
             }
@@ -68,24 +67,24 @@ where
     }
 }
 
-pub struct Strongbox<W: std::io::Write>(csv::Writer<W>);
-impl<W: std::io::Write> Strongbox<W> {
+pub struct Strongbox<W: io::Write>(csv::Writer<W>);
+impl<W: io::Write> Strongbox<W> {
     pub fn with_output(out: W) -> Self {
         Self(csv::Writer::from_writer(out))
     }
 }
 
-impl<W: std::io::Write> Sink for Strongbox<W> {
+impl<W: io::Write> Sink for Strongbox<W> {
     fn convert_from_source(&mut self, source: Box<dyn Source>) -> anyhow::Result<()> {
         let mut error_context = String::new();
         for item in source.into_item_iter() {
             error_context.clear();
-            write!(error_context, "Converting item {item} to Strongbox")?;
-            let converted_item =
-                StrongboxCsvItem::try_from(item).with_context(|| error_context.clone())?;
+            write!(error_context, "Unable to convert item {item} to Strongbox")?;
+            let converted_item: StrongboxCsvItem =
+                item.try_into().with_context(|| error_context.clone())?;
             self.0
                 .serialize(converted_item)
-                .context("Serializing to output")?;
+                .with_context(|| error_context.clone())?;
         }
         self.0.flush()?;
         Ok(())
