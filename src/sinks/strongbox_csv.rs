@@ -1,3 +1,4 @@
+use anyhow::Context;
 use chrono::{serde::ts_seconds, DateTime, Utc};
 use std::fmt::Write;
 use std::{borrow::Cow, io};
@@ -22,27 +23,11 @@ pub struct StrongboxCsvItem<'item> {
     pub created: DateTime<Utc>,
 }
 
-#[derive(thiserror::Error, Debug)]
-#[error(transparent)]
-pub enum ItemErrorKind {
-    CantConvert(#[from] anyhow::Error),
-    CantSerializeToCsv(#[from] csv::Error),
-    Io(#[from] io::Error),
-    Fmt(#[from] std::fmt::Error),
-}
-
-#[derive(thiserror::Error, Debug)]
-#[error("Unable to convert item {item_title} to Strongbox")]
-struct ItemError {
-    item_title: String,
-    source: ItemErrorKind,
-}
-
 impl<'a, 'b> TryFrom<UniversalItem<'a>> for StrongboxCsvItem<'b>
 where
     'a: 'b,
 {
-    type Error = ItemErrorKind;
+    type Error = anyhow::Error;
     fn try_from(item: UniversalItem<'a>) -> Result<Self, Self::Error> {
         let mut converted = StrongboxCsvItem {
             title: item.title,
@@ -57,17 +42,13 @@ where
         };
 
         for (name, value) in item.unknown_fields {
-            if let Ok(str) = std::str::from_utf8(value.as_ref()) {
-                if !str.is_empty() {
-                    write!(converted.notes.to_mut(), "\n{name}: {str}")?;
-                }
+            if let Ok(str) = std::str::from_utf8(value.as_ref()) && !str.is_empty() {
+                write!(converted.notes.to_mut(), "\n{name}: {str}")?;
             }
         }
 
-        if let Some(ref email) = converted.email {
-            if converted.username.is_none() {
-                converted.username = Some(email.clone());
-            }
+        if let Some(ref email) = converted.email && let None = converted.username {
+            converted.username = Some(email.clone());
         }
 
         if let Some(phone) = converted.phone.as_ref() {
@@ -88,7 +69,7 @@ impl<W: io::Write> Strongbox<W> {
         Self(csv::Writer::from_writer(out))
     }
 
-    fn serialize_item(&mut self, item: UniversalItem) -> Result<(), ItemErrorKind> {
+    fn serialize_item(&mut self, item: UniversalItem) -> Result<(), anyhow::Error> {
         self.0.serialize(StrongboxCsvItem::try_from(item)?)?;
         Ok(())
     }
@@ -98,10 +79,8 @@ impl<W: io::Write> Sink for Strongbox<W> {
     fn digest_items(&mut self, source: Box<dyn Source>) -> Result<(), anyhow::Error> {
         for item in source.into_item_iter() {
             let item_title = item.title.clone();
-            self.serialize_item(item).map_err(|source| ItemError {
-                item_title: item_title.into_owned(),
-                source: source.into(),
-            })?;
+            self.serialize_item(item)
+                .with_context(|| format!("Unable to convert item {item_title}"))?;
         }
         self.0.flush()?;
         Ok(())

@@ -1,3 +1,4 @@
+#![feature(let_chains)]
 use anyhow::{bail, Context, Result};
 use itertools::Itertools;
 use std::env::args;
@@ -47,7 +48,7 @@ fn main() -> Result<()> {
         println!("Conversion successful!");
     } else {
         println!("Usage: {invocation} enpass SOURCE_FILE to strongbox OUTPUT_FILE");
-        println!("Sample usage: {invocation} enpass ./export.json to strongbox ./out.csv");
+        println!("Example: {invocation} enpass ./export.json to strongbox ./out.csv");
     }
     Ok(())
 }

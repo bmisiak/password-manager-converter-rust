@@ -66,7 +66,7 @@ impl<'a> Iterator for EnpassIterator<'a> {
 }
 
 impl<'a> super::Source<'a> for EnpassJson<'a> {
-    fn from_reader<R: BufRead>(reader: R) -> anyhow::Result<Self>
+    fn from_reader(reader: impl BufRead) -> anyhow::Result<Self>
     where
         Self: Sized,
     {
