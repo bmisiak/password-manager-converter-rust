@@ -23,12 +23,12 @@ pub struct StrongboxCsvItem<'item> {
     pub created: DateTime<Utc>,
 }
 
-impl<'a, 'b> TryFrom<UniversalItem<'a>> for StrongboxCsvItem<'b>
+impl<'source, 'converted> TryFrom<UniversalItem<'source>> for StrongboxCsvItem<'converted>
 where
-    'a: 'b,
+    'source: 'converted,
 {
     type Error = anyhow::Error;
-    fn try_from(item: UniversalItem<'a>) -> Result<Self, Self::Error> {
+    fn try_from(item: UniversalItem<'source>) -> Result<Self, Self::Error> {
         let mut converted = StrongboxCsvItem {
             title: item.title,
             username: item.username,
