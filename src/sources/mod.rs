@@ -1,6 +1,6 @@
 use std::io::BufRead;
 
-use crate::universal::UniversalItem;
+use crate::conversion::UniversalItem;
 
 pub mod enpass_json;
 

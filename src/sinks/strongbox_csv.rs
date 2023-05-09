@@ -4,7 +4,7 @@ use std::fmt::Write;
 use std::{borrow::Cow, io};
 
 use super::Sink;
-use crate::{sources::Source, universal::UniversalItem};
+use crate::{conversion::UniversalItem, sources::Source};
 
 #[derive(serde::Serialize, Default)]
 #[serde(rename_all = "PascalCase")]
